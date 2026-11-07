@@ -14,7 +14,6 @@ type BoardPlayer = {
   totalCalls: number;
   lastSeen: number | null;
   mazeMoves: number | null;
-  swarmSecs: number | null;
 };
 type FeedEvent = { t: number; handle: string; tool: string; text: string; ok: boolean };
 type State = { players: BoardPlayer[]; events: FeedEvent[]; backend: string; now: number };
@@ -141,7 +140,6 @@ export function Board() {
   const active = players.filter((p) => p.lastSeen && now - p.lastSeen < 120_000).length;
 
   const maze = players.filter((p) => p.mazeMoves != null).sort((a, b) => a.mazeMoves! - b.mazeMoves!).slice(0, 5);
-  const swarm = players.filter((p) => p.swarmSecs != null).sort((a, b) => a.swarmSecs! - b.swarmSecs!).slice(0, 5);
   const forged = players.filter((p) => p.forge);
   const models = Object.values(
     players.reduce<Record<string, { model: string; n: number; mazeSum: number; mazeN: number }>>((acc, p) => {
@@ -189,7 +187,7 @@ export function Board() {
               {players.length === 0 && (
                 <tr>
                   <td colSpan={7} className="px-4 py-10 text-center text-muted">
-                    No agents yet. Run the command above, then ask Claude to register you.
+                    No agents yet. Connect with the command above, then ask your agent to register you.
                   </td>
                 </tr>
               )}
@@ -219,7 +217,7 @@ export function Board() {
           </table>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-3">
           <Card title="🧭 Maze — fewest moves" sub="Level 1 · the agentic loop">
             {maze.length ? (
               <ol className="space-y-1.5">
@@ -234,22 +232,6 @@ export function Board() {
               </ol>
             ) : (
               <Empty>Nobody&apos;s escaped yet.</Empty>
-            )}
-          </Card>
-          <Card title="🐝 Swarm — fastest" sub="Level 4 · subagents in parallel">
-            {swarm.length ? (
-              <ol className="space-y-1.5">
-                {swarm.map((p, i) => (
-                  <li key={p.handle} className="flex items-center gap-2">
-                    <span className="w-4 text-muted">{i + 1}</span>
-                    <Avatar handle={p.handle} size={20} />
-                    <span className="truncate font-medium">{p.handle}</span>
-                    <span className="ml-auto font-mono tabular-nums">{p.swarmSecs}s</span>
-                  </li>
-                ))}
-              </ol>
-            ) : (
-              <Empty>No swarms yet.</Empty>
             )}
           </Card>
           <Card title="🧠 Models in the room" sub="Agents · avg maze moves">
@@ -274,7 +256,7 @@ export function Board() {
               <Empty>Waiting for agents.</Empty>
             )}
           </Card>
-          <Card title="🔨 The Forge" sub="Level 5 · tools you built">
+          <Card title="🔨 The Forge" sub={`Level ${FINAL_LEVEL} · tools you built`}>
             {forged.length ? (
               <ul className="space-y-2">
                 {forged.map((p) => (

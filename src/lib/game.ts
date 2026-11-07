@@ -6,17 +6,16 @@ import {
   LOG_PAGES,
   LOG_PAGE_SIZE,
   MAZE_SIZE,
-  SECTORS,
   doors,
   handshakeCode,
   logs,
   makeTransmission,
   maze,
   roomFlavor,
-  swarm,
   type Dir,
 } from "./puzzles";
 
+import { event } from "@/data/event";
 import { FINAL_LEVEL, LEVELS } from "./levels";
 export { FINAL_LEVEL, LEVELS };
 
@@ -43,7 +42,6 @@ const K = {
   events: `${NS}events`,
   maze: (h: string) => `${NS}maze:${h}`,
   tx: (h: string) => `${NS}tx:${h}`,
-  swarmStart: (h: string) => `${NS}swarm-start:${h}`,
 };
 
 const db = () => store();
@@ -74,7 +72,7 @@ const locked = (p: Player, need: number): Reply | null =>
   p.level < need
     ? {
         ok: false,
-        text: `🔒 That's a level ${need} tool. You're on level ${p.level} (${LEVELS[p.level].name}). Finish it first — call get_mission to see your current brief.`,
+        text: `🔒 That's a level ${need} tool. You're on level ${p.level} (${LEVELS[p.level].name}). Call get_mission for your current brief.`,
         feed: `locked (needs L${need})`,
       }
     : null;
@@ -113,9 +111,9 @@ export function brief(p: Player, level: number): string {
   switch (level) {
     case 0:
       return [
-        `LEVEL 0 — HANDSHAKE (concept: MCP basics)`,
+        `LEVEL 0: HANDSHAKE (MCP basics)`,
         ``,
-        `You just made your first tool calls to a remote MCP server. Your harness (Claude Code) discovered this server's tools, the model read their descriptions, decided to call register and get_mission, and the harness sent those calls over HTTP.`,
+        `You just called tools on a remote MCP server. When your agent connected, it read this server's tool list (names, descriptions, input schemas). The model chose register and get_mission from those descriptions, and your agent sent the calls over HTTP.`,
         ``,
         `Your handshake code is: ${handshakeCode(h)}`,
         ``,
@@ -123,71 +121,61 @@ export function brief(p: Player, level: number): string {
       ].join("\n");
     case 1:
       return [
-        `LEVEL 1 — THE MAZE (concept: the agentic loop)`,
+        `LEVEL 1: THE MAZE (the agentic loop)`,
         ``,
-        `You're in room (0,0) of a ${MAZE_SIZE}x${MAZE_SIZE} maze. x grows to the east, y grows to the south. It's dark: look() only tells you which doors are open in the room you're standing in. move(direction) walks through a door.`,
+        `You're in room (0,0) of a dark ${MAZE_SIZE}x${MAZE_SIZE} maze. x grows east, y grows south. look() shows the open doors in your room; move(direction) walks through one.`,
         ``,
-        `Find the exit room. Its code is engraved on the door. Submit it with submit(level=1, answer="<code>").`,
+        `Find the exit room. Its code is engraved on the door. Submit it: submit(level=1, answer="<code>").`,
         ``,
-        `Observe → act → observe. Keep your own map of rooms and doors as you go, and backtrack from dead ends. Every move call counts — the board ranks the fewest moves.`,
+        `Look, decide, move, repeat: that's the agentic loop. Keep a map of rooms and doors as you go and backtrack from dead ends. The board ranks the fewest moves.`,
       ].join("\n");
     case 2: {
       const L = logs(h);
       return [
-        `LEVEL 2 — NEEDLE IN THE LOGS (concept: harness tools + MCP together)`,
+        `LEVEL 2: NEEDLE IN THE LOGS (agents write code)`,
         ``,
-        `fetch_logs(page) returns ${LOG_PAGES * LOG_PAGE_SIZE} lines of server logs across ${LOG_PAGES} pages (1–${LOG_PAGES}).`,
+        `fetch_logs(page) returns ${LOG_PAGE_SIZE} lines of server logs per page, pages 1–${LOG_PAGES} (${LOG_PAGES * LOG_PAGE_SIZE} lines in all).`,
         ``,
         `Question: ${L.question}`,
         ``,
-        `Counting hundreds of lines "in your head" is slow and error-prone. Better: save each page to a local file, then write and run a small script (grep/awk/python) to compute the answer. MCP brings the data in; your harness's own tools (Write, Bash) do the work.`,
+        `Don't count by eye. Save the pages to files and write a small script (Python, awk, grep) to get the exact answer. MCP brings the data in; your agent's own file and shell tools do the math.`,
         ``,
-        `Submit with submit(level=2, answer="u_XXXX"). Careful — there's a trap for anyone who doesn't filter by time.`,
+        `Mind the time window: the obvious answer is a trap. Submit: submit(level=2, answer="u_XXXX").`,
       ].join("\n");
     }
     case 3:
       return [
-        `LEVEL 3 — THE TRANSMISSION (concept: Skills)`,
+        `LEVEL 3: THE TRANSMISSION (skills)`,
         ``,
-        `Encrypted transmissions arrive via get_transmission(). Each one looks like:  TX:<n>:<payload>`,
-        ``,
-        `Decoding protocol:`,
-        `  1. Split on ":" → the shift n (an integer) and the payload.`,
+        `get_transmission() gives you an encrypted message shaped like TX:<n>:<payload>. To decode it:`,
+        `  1. Split on ":" to get the shift n (an integer) and the payload.`,
         `  2. Base64-decode the payload to text.`,
         `  3. Reverse the text.`,
-        `  4. Caesar-shift every letter A–Z BACK by n (A shifted back by 1 is Z). Spaces stay spaces.`,
-        `  The result is three uppercase words, e.g. "NEON OTTER LAUNCH".`,
+        `  4. Shift every letter A–Z BACK by n (A back by 1 is Z). Spaces stay spaces.`,
+        `You get three uppercase words, e.g. "NEON OTTER LAUNCH".`,
         ``,
-        `Rules: each get_transmission call issues a fresh transmission and voids the previous one. Each expires 2 minutes after it's issued. Decode and submit 3 in a row correctly — submit(level=3, answer="WORD WORD WORD"). A wrong or late answer resets the streak.`,
+        `Decode and submit 3 in a row: submit(level=3, answer="WORD WORD WORD"). Each get_transmission call voids the previous one, and each expires 2 minutes after it's issued. A wrong or late answer resets the streak. A tiny script makes decoding exact.`,
         ``,
-        `THE REAL TASK (for the human): don't let the agent just do it here. Ask Claude to write a skill at .claude/skills/decode-transmission/SKILL.md (with a decode script next to it) that captures this protocol. Then run /clear and say only: "decode the latest gauntlet transmission and submit it". A fresh context that knows nothing should find and use your skill.`,
+        `Optional tip: if your agent supports skills, ask it to save this protocol as one (a SKILL.md plus a decode script; Claude Code looks in .claude/skills/). Then start a fresh chat and just say "decode the latest gauntlet transmission and submit it". A new context that knows nothing should find and use the skill.`,
       ].join("\n");
     case 4:
       return [
-        `LEVEL 4 — THE SWARM (concept: subagents & parallelism)`,
+        `LEVEL 4: THE FORGE (bonus: build your own MCP server)`,
         ``,
-        `Six sectors: ${SECTORS.join(", ")}. Each holds one fragment of a 6-word passphrase, buried 3 scans deep.`,
-        ``,
-        `scan_sector(sector) starts a scan and returns a relay code. scan_sector(sector, relay) goes one level deeper. The third scan reveals the fragment and its position (1–6). Scans are slow (~2s each) and each sector's chain is independent of the others.`,
-        ``,
-        `Done one by one, that's 18 slow round-trips. Instead: spawn one subagent per sector, in parallel, each returning just "position N: WORD". The clock starts at your first scan — the board ranks the fastest swarm.`,
-        ``,
-        `Submit the words in position order joined with hyphens: submit(level=4, answer="WORD-WORD-WORD-WORD-WORD-WORD").`,
-      ].join("\n");
-    case 5:
-      return [
-        `LEVEL 5 — THE FORGE (concept: build your own MCP server)`,
-        ``,
-        `You've used someone else's MCP server. Now build one. The repo's starter/ folder has a ~40-line TypeScript MCP server that runs locally over stdio.`,
+        `You've been using someone else's MCP server. Now make one. The starter/ folder in ${event.repo} has a ~40-line TypeScript MCP server that runs locally over stdio.`,
         ``,
         `  1. cd starter && npm install`,
-        `  2. Add a tool of your own to server.ts (something an LLM is bad at on its own: exact math, date arithmetic, reading a local file format, calling an API you like).`,
-        `  3. claude mcp add forge -- npx tsx "$(pwd)/server.ts"   (run inside starter/), then restart Claude Code and check /mcp.`,
-        `  4. Have your agent use your tool AND this gauntlet server in the same conversation.`,
-        `  5. claim_forge(tool_name, description) puts your tool on the board.`,
+        `  2. Add a tool of your own to server.ts: something a model is bad at alone (exact math, dates, real randomness, a local file, an API you like).`,
+        `  3. Register it, from inside starter/:`,
+        `       Claude Code:  claude mcp add forge -- npx tsx "$(pwd)/server.ts"`,
+        `       Codex:        codex mcp add forge -- npx tsx "$(pwd)/server.ts"`,
+        `       Cursor/other: add a stdio server that runs npx tsx /full/path/to/starter/server.ts`,
+        `     Then restart your agent so it picks up the new server.`,
+        `  4. Use your tool and this gauntlet server in the same conversation.`,
+        `  5. Call claim_forge(tool_name, description) to put your tool on the board.`,
       ].join("\n");
     default:
-      return `🏆 You finished the Agent Gauntlet. Go help a neighbor — or try beating your maze score with a different model (/model).`;
+      return `🏆 You finished the Agent Gauntlet. Go help a neighbor.`;
   }
 }
 
@@ -229,15 +217,8 @@ export async function submit(p: Player, level: number, answer: string): Promise<
       return a.toLowerCase() === logs(p.handle).answer ? advance(p, 2, "") : wrong(2, " Did you filter to the right hour?");
     case 3:
       return submitTransmission(p, a);
-    case 4: {
-      if (a.replace(/[\s,]+/g, "-") !== swarm(p.handle).passphrase) return wrong(4, " Order matters: position 1 first.");
-      const start = await db().get<number>(K.swarmStart(p.handle));
-      const secs = start ? Math.round((Date.now() - start) / 1000) : null;
-      if (secs != null) await db().hset(K.stats, `${p.handle}|swarm`, secs);
-      return advance(p, 4, secs != null ? ` Swarm time: ${secs}s from first scan.` : "");
-    }
-    case 5:
-      return { ok: false, text: `Level 5 has no answer to submit — build your tool, then call claim_forge.`, feed: "submit L5?" };
+    case 4:
+      return { ok: false, text: `Level 4 has no answer to submit. Build your tool, then call claim_forge.`, feed: "submit L4?" };
     default:
       return { ok: false, text: `You've already finished. 🏆` };
   }
@@ -351,37 +332,14 @@ async function submitTransmission(p: Player, a: string): Promise<Reply> {
   return { text: `✅ Decoded. Streak ${st.streak}/3. Call get_transmission for the next one.`, feed: `decoded ${st.streak}/3 ✅` };
 }
 
-// ---------- Level 4: swarm ----------
-
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-export const SCAN_DELAY_MS = Number(process.env.SCAN_DELAY_MS ?? 2000);
-
-export async function scanSector(p: Player, sectorIn: string, relay?: string): Promise<Reply> {
-  const l = locked(p, 4);
-  if (l) return l;
-  const sector = sectorIn.trim().toUpperCase();
-  const sw = swarm(p.handle);
-  const sec = sw.sectors.find((s) => s.sector === sector);
-  if (!sec) return { ok: false, text: `Unknown sector "${sectorIn}". Sectors: ${SECTORS.join(", ")}.`, feed: `scan(${sectorIn}) ✗` };
-  await db().setnx(K.swarmStart(p.handle), Date.now());
-  await sleep(SCAN_DELAY_MS);
-  const r = relay?.trim().toUpperCase();
-  if (!r) return { text: `Sector ${sector}, depth 1/3. Relay code: ${sec.relays[0]}. Next: scan_sector(sector="${sector}", relay="${sec.relays[0]}").`, feed: `scan ${sector} 1/3` };
-  if (r === sec.relays[0])
-    return { text: `Sector ${sector}, depth 2/3. Relay code: ${sec.relays[1]}. Next: scan_sector(sector="${sector}", relay="${sec.relays[1]}").`, feed: `scan ${sector} 2/3` };
-  if (r === sec.relays[1])
-    return { text: `Sector ${sector}, depth 3/3. 📡 Fragment found — position ${sec.position} of 6: ${sec.word}`, feed: `scan ${sector} 3/3 📡` };
-  return { ok: false, text: `Relay "${relay}" isn't valid for sector ${sector}. Start over with scan_sector(sector="${sector}") and no relay.`, feed: `scan ${sector} bad relay ✗` };
-}
-
-// ---------- Level 5: forge ----------
+// ---------- Level 4: forge ----------
 
 export async function claimForge(p: Player, tool: string, description: string): Promise<Reply> {
-  const l = locked(p, 5);
+  const l = locked(p, FINAL_LEVEL);
   if (l) return l;
   p.forge = { tool: tool.trim().slice(0, 40), description: description.trim().slice(0, 140) };
-  if (p.level === 5) {
-    const r = await advance(p, 5, ` Your tool "${p.forge.tool}" is on the board.`);
+  if (p.level === FINAL_LEVEL) {
+    const r = await advance(p, FINAL_LEVEL, ` Your tool "${p.forge.tool}" is on the board.`);
     return { ...r, feed: `forged ${p.forge.tool} 🔨` };
   }
   await savePlayer(p);
@@ -395,7 +353,6 @@ export type BoardPlayer = Player & {
   totalCalls: number;
   lastSeen: number | null;
   mazeMoves: number | null;
-  swarmSecs: number | null;
 };
 
 export async function board() {
@@ -416,7 +373,6 @@ export async function board() {
       totalCalls: Number(calls[`${p.handle}|total`] ?? 0),
       lastSeen: seen[p.handle] != null ? Number(seen[p.handle]) : null,
       mazeMoves: stats[`${p.handle}|maze`] != null ? Number(stats[`${p.handle}|maze`]) : null,
-      swarmSecs: stats[`${p.handle}|swarm`] != null ? Number(stats[`${p.handle}|swarm`]) : null,
     };
   });
   const lastDone = (p: Player) => Math.max(p.joinedAt, ...Object.values(p.completed));

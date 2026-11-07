@@ -11,9 +11,9 @@ const levels = [
     name: "Handshake",
     concept: "MCP basics",
     tools: ["register", "get_mission", "submit"],
-    what: "Register, read your first brief, submit the handshake code it contains.",
+    what: "Register, read your first brief, and submit the handshake code inside it.",
     lesson:
-      "Claude Code discovered this server's tools when it connected. The model only ever sees each tool's name, description, and input schema — then decides to call one. Run /mcp to see what your harness sees.",
+      "When your agent connected, it fetched this server's tool list. The model only ever sees each tool's name, description, and input schema, and decides from those which one to call.",
     prompt: "Use the gauntlet MCP. Register me and start level 0.",
   },
   {
@@ -23,17 +23,17 @@ const levels = [
     tools: ["look", "move"],
     what: "A dark 7×7 maze. look() shows only the doors in your current room. Find the exit; its code is on the door.",
     lesson:
-      "No single call can solve this. The agent has to observe → decide → act → observe again, keep its own map in context, and backtrack. Watch the live feed: that's the loop. Then /model haiku and compare move counts.",
+      "No single call solves this. The agent has to look, decide, move, and look again, keeping its own map and backtracking. Watch the live feed: that's the loop. Try a different model and compare move counts.",
     prompt: "Solve level 1. Keep a map as you go and avoid revisiting dead ends.",
   },
   {
     n: 2,
     name: "Needle in the Logs",
-    concept: "Harness tools + MCP",
+    concept: "Agents write code",
     tools: ["fetch_logs"],
     what: "1,500 log lines across 5 pages. Find which user had the most failed logins in a given hour.",
     lesson:
-      "MCP brings data in; the harness's own tools do the work. The good play is to save the pages to disk and write a script, not to eyeball 1,500 lines. There's a trap for anyone who skips the time filter.",
+      "MCP brings the data in; the agent's own file and shell tools do the work. The good play is to save the pages and write a quick script, not to eyeball 1,500 lines. Skip the time filter and you fall in the trap.",
     prompt: "Do level 2. Save the pages to files and use a script to get an exact answer.",
   },
   {
@@ -43,28 +43,19 @@ const levels = [
     tools: ["get_transmission"],
     what: "Decode three expiring ciphertexts in a row, using a 4-step protocol from the brief.",
     lesson:
-      "Turn a procedure into a reusable skill: .claude/skills/decode-transmission/SKILL.md plus a script. Then /clear. A fresh context that knows nothing should find the skill by its description and load it only when needed.",
-    prompt: 'Write a skill for this protocol. → /clear → "Decode the latest gauntlet transmission and submit it."',
+      "Any agent can solve it straight from the brief. For extra credit, have it save the protocol as a skill (a SKILL.md plus a decode script), start a fresh chat, and see whether a context that knows nothing finds and uses it.",
+    prompt: "Do level 3. Write a small decode script so every answer is exact.",
   },
   {
     n: 4,
-    name: "The Swarm",
-    concept: "Subagents & parallelism",
-    tools: ["scan_sector"],
-    what: "Six sectors, three slow chained scans each. Collect six fragments into a passphrase.",
-    lesson:
-      "Independent work belongs in parallel subagents. Each one gets its own context, does its 3 scans, and returns one line. The main agent never sees the noise. The board times you from your first scan.",
-    prompt: "Do level 4. Spawn one subagent per sector in parallel; each returns only its position and word.",
-  },
-  {
-    n: 5,
     name: "The Forge",
-    concept: "Build your own MCP",
+    concept: "Bonus: build your own MCP",
     tools: ["claim_forge"],
-    what: "Write your own MCP server from starter/, give it a tool, and have your agent use both servers together.",
+    what: "Give the starter/ MCP server a tool of your own, connect it, and have your agent use both servers together.",
     lesson:
       "An MCP server is a small program: tool names, descriptions, schemas, and handlers. Give the model something it's bad at on its own: exact math, dates, a local file format, an API.",
-    prompt: "cd starter && npm install → add a tool → claude mcp add forge -- npx tsx \"$(pwd)/server.ts\"",
+    prompt:
+      'cd starter && npm install, add a tool, then one of:\nclaude mcp add forge -- npx tsx "$(pwd)/server.ts"\ncodex mcp add forge -- npx tsx "$(pwd)/server.ts"',
   },
 ];
 
@@ -74,11 +65,11 @@ export default function Levels() {
       <SiteHeader active="levels" />
       <main className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-10">
         <div>
-          <h1 className="text-4xl font-semibold tracking-tight">Six levels, six ideas</h1>
+          <h1 className="text-4xl font-semibold tracking-tight">Five levels, five ideas</h1>
           <p className="mt-2 max-w-2xl text-muted">
-            Every puzzle is generated from your GitHub username, so your answers are yours alone. Each level teaches one
-            piece of how agents work. The brief for each level comes from the server itself via{" "}
-            <code className="font-mono text-sm">get_mission</code>.
+            Connect any MCP client (Claude Code, Codex, Cursor, and others) with your GitHub username in the URL. Every
+            puzzle is generated from that name, so your answers are yours alone. Each level teaches one piece of how agents
+            work, and the brief for each comes from the server itself via <code className="font-mono text-sm">get_mission</code>.
           </p>
         </div>
 
@@ -106,7 +97,7 @@ export default function Levels() {
                   <h3 className="text-xs font-semibold uppercase tracking-wide text-muted">The puzzle</h3>
                   <p className="mt-1 text-sm">{l.what}</p>
                   <h3 className="mt-4 text-xs font-semibold uppercase tracking-wide text-muted">Try saying</h3>
-                  <p className="mt-1 font-mono text-[13px]">{l.prompt}</p>
+                  <p className="mt-1 font-mono text-[13px] whitespace-pre-line">{l.prompt}</p>
                 </div>
                 <div>
                   <h3 className="text-xs font-semibold uppercase tracking-wide text-muted">What it teaches</h3>
@@ -121,12 +112,14 @@ export default function Levels() {
           <h2 className="text-base font-semibold">Stuck?</h2>
           <ul className="mt-2 list-disc space-y-1 pl-5 text-muted">
             <li>
-              Tools missing? Run <code className="font-mono">/mcp</code> in Claude Code. If gauntlet isn&apos;t connected,
-              re-run the command above and restart <code className="font-mono">claude</code>.
+              Tools missing? Check that <code className="font-mono">gauntlet</code> is connected (
+              <code className="font-mono">/mcp</code> in Claude Code or Codex, MCP settings in Cursor). If not, add it again
+              and restart your agent.
             </li>
             <li>
-              &quot;No agent name&quot;? You skipped the <code className="font-mono">--header</code>. Run{" "}
-              <code className="font-mono">claude mcp remove gauntlet</code> and add it again.
+              &quot;No player name&quot;? The URL needs <code className="font-mono">?name=your-github-username</code> on the
+              end. Remove the server (<code className="font-mono">claude mcp remove gauntlet</code> or{" "}
+              <code className="font-mono">codex mcp remove gauntlet</code>) and add it again with the command above.
             </li>
             <li>
               Lost track? Ask your agent to call <code className="font-mono">get_mission</code>. It always returns your current

@@ -1,11 +1,12 @@
 // The Forge: your own MCP server, running locally over stdio.
 //
-// Claude Code launches this file as a child process and talks to it over
+// Your agent launches this file as a child process and talks to it over
 // stdin/stdout. Each tool is three things: a name, a description the model
 // reads to decide when to call it, and a handler that does the work.
 //
 // Register it (run inside starter/):
 //   claude mcp add forge -- npx tsx "$(pwd)/server.ts"
+//   codex mcp add forge -- npx tsx "$(pwd)/server.ts"
 
 import { McpServer } from "@modelcontextprotocol/server";
 import { StdioServerTransport } from "@modelcontextprotocol/server/stdio";

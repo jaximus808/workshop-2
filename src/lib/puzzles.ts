@@ -211,25 +211,3 @@ export function makeTransmission(handle: string, nonce: number) {
   const payload = Buffer.from(caesar(plain, n).split("").reverse().join(""), "utf8").toString("base64");
   return { plain, cipher: `TX:${n}:${payload}` };
 }
-
-// ---------- Level 4: the swarm ----------
-
-export const SECTORS = ["ALPHA", "BRAVO", "CHARLIE", "DELTA", "ECHO", "FOXTROT"] as const;
-export type Sector = (typeof SECTORS)[number];
-const FRAGMENT_WORDS = [
-  "SILVER", "THUNDER", "PAPER", "COMET", "GARDEN", "SIGNAL", "COPPER", "HOLLOW", "MARBLE", "STATIC",
-  "WILLOW", "CIPHER", "AMBER", "VECTOR", "LOTUS", "RADAR", "CRYSTAL", "BEACON",
-];
-
-export function swarm(handle: string) {
-  const r = rng(handle, "swarm");
-  const words = r.shuffle([...FRAGMENT_WORDS]).slice(0, SECTORS.length);
-  const order = r.shuffle(SECTORS.map((_, i) => i)); // sector i holds fragment #order[i]
-  const sectors = SECTORS.map((s, i) => ({
-    sector: s,
-    position: order[i] + 1,
-    word: words[order[i]],
-    relays: [code(rng(handle, s, 1), 5), code(rng(handle, s, 2), 5)],
-  }));
-  return { sectors, passphrase: words.join("-") };
-}
