@@ -255,6 +255,11 @@ export function Board() {
           <Card title="🧠 Models in the room" sub="Agents · avg maze moves">
             {models.length ? (
               <ul className="space-y-1.5">
+                <li className="flex gap-2 text-[11px] uppercase tracking-wide text-muted">
+                  <span>Model</span>
+                  <span className="ml-auto">Agents</span>
+                  <span className="w-12 text-right">Moves</span>
+                </li>
                 {models.map((m) => (
                   <li key={m.model} className="flex items-center gap-2">
                     <span className="truncate font-mono text-xs">{m.model}</span>
