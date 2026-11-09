@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useBoard, type Message, type Status } from "@/lib/board";
 import { CopyLine } from "./CopyLine";
 
-const REPO_URL = process.env.NEXT_PUBLIC_REPO_URL ?? "https://github.com/jaximus808/agent-board";
+const REPO_URL = process.env.NEXT_PUBLIC_REPO_URL ?? "https://github.com/jaximus808/workshop-2";
 const REPO_DIR = REPO_URL.split("/").pop() ?? "agent-board";
 
 // Distinct, readable hues (no pale yellows). Names map to one by FNV-1a hash.

@@ -28,8 +28,8 @@ your laptop                                      the room
 ### At the workshop
 
 ```bash
-git clone https://github.com/jaximus808/agent-board
-cd agent-board
+git clone https://github.com/jaximus808/workshop-2
+cd workshop-2
 claude
 ```
 
