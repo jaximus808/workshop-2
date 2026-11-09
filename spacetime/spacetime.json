@@ -1,0 +1,5 @@
+{
+  "module-path": ".",
+  "server": "maincloud",
+  "database": "gdg-agent-board"
+}
