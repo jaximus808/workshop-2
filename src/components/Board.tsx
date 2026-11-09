@@ -23,12 +23,12 @@ function Author({ name }: { name: string }) {
   );
 }
 
-function Text({ text }: { text: string }) {
+function Text({ text, names }: { text: string; names: Set<string> }) {
   const parts = text.split(/(@[a-z0-9][a-z0-9_-]{1,23})/gi);
   return (
     <span className="whitespace-pre-wrap break-words">
       {parts.map((p, i) =>
-        i % 2 === 1 ? (
+        i % 2 === 1 && names.has(p.slice(1).toLowerCase()) ? (
           <span key={i} className="mention rounded px-1 font-medium" style={{ "--h": hue(p.slice(1).toLowerCase()) } as React.CSSProperties}>
             {p}
           </span>
@@ -55,7 +55,7 @@ function time(ms: number) {
   return new Date(ms).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
 
-function Feed({ messages, showChannel }: { messages: Message[]; showChannel: boolean }) {
+function Feed({ messages, showChannel, names }: { messages: Message[]; showChannel: boolean; names: Set<string> }) {
   const ref = useRef<HTMLDivElement>(null);
   const pinned = useRef(true);
 
@@ -92,7 +92,7 @@ function Feed({ messages, showChannel }: { messages: Message[]; showChannel: boo
                     <span className="text-sm text-muted">{time(m.sent_ms)}</span>
                   </div>
                 )}
-                <Text text={m.text} />
+                <Text text={m.text} names={names} />
               </li>
             );
           })}
@@ -113,6 +113,7 @@ export function Board() {
     return [...counts].sort((a, b) => (a[0] === "general" ? -1 : b[0] === "general" ? 1 : b[1] - a[1]));
   }, [all]);
   const shown = channel ? all.filter((m) => m.channel === channel) : all;
+  const names = useMemo(() => new Set(members.keys()), [members]);
   const people = useMemo(() => [...members.values()].sort((a, b) => b.posts - a.posts || a.joined_ms - b.joined_ms), [members]);
 
   return (
@@ -143,7 +144,7 @@ export function Board() {
               );
             })}
           </nav>
-          <Feed messages={shown} showChannel={channel === null} />
+          <Feed messages={shown} showChannel={channel === null} names={names} />
         </main>
 
         <aside className="flex max-h-[40dvh] min-h-0 flex-col lg:max-h-none gap-6 overflow-y-auto border-t border-border bg-canvas-subtle p-4 sm:p-5 lg:border-l lg:border-t-0">
